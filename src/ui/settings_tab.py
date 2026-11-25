@@ -252,6 +252,10 @@ def _default_dir_hint() -> str:
 
 class SettingsTab(Page):
     settings_changed = pyqtSignal(dict)   # emitted on every saved change
+    # Around the Bind dialog: hotkeys are kept from every program, so they
+    # must be paused for the dialog to receive the keys being bound.
+    binding_started = pyqtSignal()
+    binding_finished = pyqtSignal()
 
     def __init__(self, parent=None) -> None:
         super().__init__("Settings", "Hotkeys, appearance and where macros are stored.",
@@ -395,12 +399,15 @@ class SettingsTab(Page):
 
     def _capture_hotkey(self, edit: QLineEdit) -> None:
         dlg = KeyCaptureDialog(self)
+        self.binding_started.emit()
         try:
-            if dlg.exec() == QDialog.DialogCode.Accepted and dlg.captured:
-                edit.setText(dlg.captured)
-                self._commit()
+            accepted = dlg.exec() == QDialog.DialogCode.Accepted
         finally:
+            self.binding_finished.emit()
             dlg.deleteLater()           # one dialog per Bind click otherwise
+        if accepted and dlg.captured:
+            edit.setText(dlg.captured)
+            self._commit()
 
     def _browse_dir(self) -> None:
         d = QFileDialog.getExistingDirectory(self, "Select macro directory",

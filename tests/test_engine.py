@@ -100,6 +100,55 @@ class Clicker(unittest.TestCase):
             setattr(c, k, v)
         return c
 
+    def _press_times(self, interval, hold, clicks=5, jitter=0.0):
+        """Run the click loop on a fake clock; return when each press happened."""
+        clock = {"t": 0.0}
+        c = self._clicker(interval=interval, hold_duration=hold,
+                          click_limit=clicks, jitter=jitter)
+        presses = []
+        c._mouse.press = lambda b: presses.append(clock["t"])
+        c._now = lambda: clock["t"]
+
+        def wait(seconds):
+            clock["t"] += max(0.0, seconds)
+            return False                    # never stopped
+        c._wait = wait
+        c._run()
+        return presses
+
+    def test_interval_is_the_time_from_one_click_to_the_next(self):
+        # 100 ms interval with the default 40 ms hold is 10 clicks a second,
+        # not one every 140 ms.
+        times = self._press_times(interval=0.1, hold=0.04)
+        gaps = [times[i + 1] - times[i] for i in range(len(times) - 1)]
+        for g in gaps:
+            self.assertAlmostEqual(g, 0.1, places=9)
+
+    def test_a_hold_longer_than_the_interval_sets_the_pace(self):
+        from src.core.autoclicker import MIN_RELEASE_GAP, click_period
+        times = self._press_times(interval=0.01, hold=0.04)
+        gaps = [times[i + 1] - times[i] for i in range(len(times) - 1)]
+        for g in gaps:
+            self.assertAlmostEqual(g, 0.04 + MIN_RELEASE_GAP, places=9)
+        self.assertAlmostEqual(click_period(0.01, 0.04), 0.04 + MIN_RELEASE_GAP)
+        self.assertAlmostEqual(click_period(0.1, 0.04), 0.1)
+
+    def test_jitter_varies_the_interval_around_its_value(self):
+        times = self._press_times(interval=0.1, hold=0.01, clicks=400, jitter=0.03)
+        gaps = [times[i + 1] - times[i] for i in range(len(times) - 1)]
+        self.assertTrue(all(0.07 - 1e-9 <= g <= 0.13 + 1e-9 for g in gaps))
+        self.assertAlmostEqual(sum(gaps) / len(gaps), 0.1, delta=0.005)
+
+    def test_real_rate_matches_the_interval(self):
+        # The real clock and the real waits, briefly: 50 ms is 20 per second.
+        c = self._clicker(interval=0.05, hold_duration=0.02)
+        c.start()
+        time.sleep(1.0)
+        c.stop()
+        c._thread.join(2)
+        self.assertGreaterEqual(c.clicks_done, 15)
+        self.assertLessEqual(c.clicks_done, 22)
+
     def test_stops_at_limit_and_reports(self):
         c = self._clicker(interval=0.01, hold_duration=0.001, click_limit=3)
         done = threading.Event()
@@ -192,16 +241,24 @@ class RecorderInput(unittest.TestCase):
         self.assertEqual([(e.x, e.y) for e in events if e.type == "mouse_click"], [(6, 6)])
 
     def test_injected_flag_reaches_the_hotkey_matcher_through_pynput(self):
+        import ctypes
         from pynput import keyboard
+        from pynput._util.win32 import SystemHook
         from src.core.hotkey_manager import HotkeyManager, parse
         hits = []
         m = HotkeyManager()
         m._combos = {parse("<f9>"): lambda: hits.append(1)}
-        kl = keyboard.Listener(on_press=m._on_press, on_release=m._on_release)
-        kl.on_press(Key.f9, True)
-        kl.on_release(Key.f9, True)
+        kl = keyboard.Listener(win32_event_filter=m._filter)
+        m._listener = kl
+
+        def event(msg, flags):
+            data = kl._KBDLLHOOKSTRUCT(0x78, 0, flags, 0, None)       # F9
+            return kl._convert(SystemHook.HC_ACTION, msg, ctypes.pointer(data))
+        event(0x0100, 0x10)                     # injected down (LLKHF_INJECTED)
+        event(0x0101, 0x10)
         self.assertEqual(hits, [])
-        kl.on_press(Key.f9, False)
+        with self.assertRaises(SystemHook.SuppressException):
+            event(0x0100, 0)
         self.assertEqual(hits, [1])
 
 

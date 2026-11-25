@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QCheckBox, QGridLayout, QHBoxLayout, QVBoxLayout
 
 from pynput.mouse import Button
 
+from src.core.autoclicker import click_period
 from src.defaults import DEFAULT_HOTKEYS
 from src.ui.icons import G
 from src.ui.inputs import CountEdit, DurationEdit, NumberEdit
@@ -102,8 +103,10 @@ class AutoclickerTab(Page):
         self.spin_interval.valueChanged.connect(self._update_rate)
         t_card.body.addLayout(field(
             "Interval", self.spin_interval,
-            info="Time from one click to the next. 100 ms is 10 clicks per "
-                 "second; the fastest is 10 ms (100 per second)."))
+            info="Time from one click to the next, including the time the "
+                 "button is held. 100 ms is 10 clicks per second. The fastest "
+                 "is 10 ms (100 per second), which needs a Hold of 5 ms or "
+                 "less."))
 
         self.spin_jitter = DurationEdit(0, 10, seconds=0)
         self.spin_jitter.setToolTip("Random ± offset added to each interval.")
@@ -118,8 +121,11 @@ class AutoclickerTab(Page):
         t_card.body.addLayout(field(
             "Hold", self.spin_hold,
             info="How long the button stays pressed down on each click. Some "
-                 "programs ignore clicks that are released too quickly."))
-        self.lbl_rate = label("", "Hint")
+                 "programs ignore clicks that are released too quickly. The "
+                 "hold is part of the interval; a hold that does not fit in it "
+                 "slows the clicking down, and the rate below says so."))
+        self.spin_hold.valueChanged.connect(self._update_rate)
+        self.lbl_rate = label("", "Hint", wrap=True)
         t_card.body.addWidget(self.lbl_rate)
         self._update_rate()
         grid.add(t_card)
@@ -179,9 +185,15 @@ class AutoclickerTab(Page):
     # ------------------------------------------------------------------
 
     def _update_rate(self) -> None:
-        iv = self.spin_interval.value()
-        if iv > 0:
-            self.lbl_rate.setText(f"≈ {1 / iv:,.1f} clicks per second")
+        iv, hold = self.spin_interval.value(), self.spin_hold.value()
+        if iv <= 0:
+            return
+        period = click_period(iv, hold)
+        text = f"≈ {1 / period:,.1f} clicks per second"
+        if period > iv:
+            text += (f" (limited by the {hold * 1000:,.0f} ms hold; a shorter "
+                     "hold clicks faster)")
+        self.lbl_rate.setText(text)
 
     def _on_start(self) -> None:
         self.set_running(True)

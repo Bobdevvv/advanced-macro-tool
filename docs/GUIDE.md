@@ -347,9 +347,9 @@ A dedicated clicker, separate from macros.
 |---|---|
 | **Mouse button** | Left, Right or Middle |
 | **Stop after** | Stop after this many clicks, or **∞ No limit** to click until you stop it. |
-| **Interval** | Time between clicks, from 10 ms (100 clicks per second) up to a day. AMT shows the resulting clicks per second below it. |
+| **Interval** | Time from one click to the next, from 10 ms (100 clicks per second) up to a day. AMT shows the resulting clicks per second below it. |
 | **Jitter ±** | Random variation added to each interval, so the rhythm is not perfectly regular. |
-| **Hold** | How long the button stays pressed on each click. |
+| **Hold** | How long the button stays pressed on each click. The hold is part of the interval: if it does not fit (a 40 ms hold with a 10 ms interval), the clicks come as fast as the hold allows, and the clicks-per-second line says so. For the fastest clicking, use a short hold (5 ms or less for 100 clicks per second). |
 | **Click at a fixed point** | Off: clicks wherever the cursor is. On: moves to **X, Y** before every click. |
 
 ![The lower part of Auto Click: Click at a fixed point switched on, with X, Y and the Pick button](images/autoclick-lower.png)
@@ -381,14 +381,21 @@ The hotkeys follow the order of the pages in the sidebar, top to bottom:
 Record, Player & Library, Composer and Auto Click on F7, F8, F9 and F10. That
 range also stays clear of the F-keys browsers use most (F5 reloads, F6 jumps
 to the address bar, F11 goes full screen, F12 opens developer tools).
-Browsers still see the key as well: in a browser, F7 (Record) may offer
-"caret browsing" and F10 (Auto click) highlights the menu bar. If that gets
-in the way, bind those actions to a combination such as Ctrl+Shift+F7.
+A hotkey belongs to AMT: the program you are using does not see it. So F7
+does not also switch on "caret browsing" in a browser, and F10 does not open
+a program's menu bar. Only the exact key or combination you bound is kept:
+with F7 bound, Ctrl+F7 still reaches the program as usual. That also means a
+program that needs F7 for itself cannot have it while AMT is running; bind
+AMT to another key if that gets in the way.
 
 To change one, press **Bind…** next to it and press the key or combination
-you want, for example `Ctrl` + `Shift` + `R`. Choose keys that the program
-you automate does not use itself. Settings will not save a combination that
-is invalid or already used by another hotkey, and tells you which one.
+you want, for example `Ctrl` + `Shift` + `R`. Hotkeys are switched off while
+the Bind window is open, so you can press a key that is already in use.
+Choose keys that the program you automate does not use itself. A key that
+types text (a letter, a number, Space, Enter) needs Ctrl, Alt or Win with it;
+on its own it would stop working for typing. Settings will not save a
+combination that is invalid or already used by another hotkey, and tells you
+which one.
 
 Hotkeys only react to keys you physically press, never to keys a macro
 types, so playing a macro can't accidentally start a recording.

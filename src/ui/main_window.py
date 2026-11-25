@@ -449,6 +449,8 @@ class MainWindow(QMainWindow):
 
         # Settings
         self.tab_cfg.settings_changed.connect(self._on_settings_saved)
+        self.tab_cfg.binding_started.connect(self._hotkeys.pause)
+        self.tab_cfg.binding_finished.connect(self._hotkeys.resume)
 
         # Hotkey bridge
         self._bridge.hotkey_rec_on.connect(self.tab_rec.trigger_start)

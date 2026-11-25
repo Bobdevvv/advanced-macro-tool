@@ -617,6 +617,28 @@ class AutoClickPage(AppTest):
         self.w.tab_auto.spin_x.setValue(-1035)
         self.assertEqual(self.w.tab_auto.fixed_x(), -1035)
 
+    def test_rate_label_tells_the_real_rate(self):
+        a = self.w.tab_auto
+        a.spin_hold.setValue(0.04)
+        a.spin_interval.setValue(0.1)
+        self.assertIn("10.0 clicks per second", a.lbl_rate.text())
+        self.assertNotIn("hold", a.lbl_rate.text())
+        a.spin_interval.setValue(0.01)           # the 40 ms hold cannot fit
+        self.assertIn("22.2 clicks per second", a.lbl_rate.text())
+        self.assertIn("hold", a.lbl_rate.text())
+        a.spin_hold.setValue(0.005)              # 5 ms hold: 100 per second
+        self.assertIn("100.0 clicks per second", a.lbl_rate.text())
+        a.spin_hold.setValue(0.04)
+
+    def test_rate_label_and_clicker_agree(self):
+        from src.core.autoclicker import click_period
+        a = self.w.tab_auto
+        for iv, hold in ((0.1, 0.04), (0.01, 0.04), (0.25, 0.3)):
+            a.spin_interval.setValue(iv)
+            a.spin_hold.setValue(hold)
+            self.assertIn(f"{1 / click_period(iv, hold):,.1f} clicks per second",
+                          a.lbl_rate.text())
+
 
 class SettingsPage(AppTest):
     """Settings save themselves: no Save button, nothing to forget."""
@@ -660,6 +682,32 @@ class SettingsPage(AppTest):
         with mock.patch.object(settings_tab, "KeyCaptureDialog", FakeDialog):
             s._capture_hotkey(s.hk_record_edit)
         self.assertEqual(self.saved_file()["hotkey_record"], "<ctrl>+r")
+
+    def test_hotkeys_are_paused_while_binding(self):
+        # Hotkeys are kept from other programs, so with them active the Bind
+        # dialog could never receive F8, and pressing it would start playback.
+        from src.ui import settings_tab
+        s, seen = self.w.tab_cfg, []
+        hk = self.w._hotkeys
+
+        class FakeDialog:
+            captured = None
+
+            def __init__(self, *_a):
+                pass
+
+            def exec(self):
+                seen.append(hk.paused)
+                raise RuntimeError("dialog failed")      # resume must still happen
+
+            def deleteLater(self):
+                pass
+        self.assertFalse(hk.paused)
+        with mock.patch.object(settings_tab, "KeyCaptureDialog", FakeDialog):
+            with self.assertRaises(RuntimeError):
+                s._capture_hotkey(s.hk_record_edit)
+        self.assertEqual(seen, [True])
+        self.assertFalse(hk.paused)
 
     def test_bad_hotkey_is_explained_inline_and_only_it_is_kept_back(self):
         s = self.w.tab_cfg

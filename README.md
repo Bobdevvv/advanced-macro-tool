@@ -198,7 +198,11 @@ The defaults follow the sidebar from top to bottom and stay within F7–F10,
 away from the browser keys F5, F6, F11 and F12. All of them can be changed in
 Settings.
 
-All hotkeys are configurable in Settings and work globally (even when the app window is not focused).
+Hotkeys work globally, even when the AMT window is not focused, and the
+program in front does not also receive them: F7 no longer switches on caret
+browsing in a browser, and F10 no longer opens a menu bar. Only the exact
+bound combination is held back (with F7 bound, Ctrl+F7 still reaches the
+program).
 
 ---
 
@@ -216,8 +220,9 @@ log, and it is worth knowing exactly when the log is being written:
 
 - The listeners start when recording starts and are torn down when it stops.
   Nothing is captured between recordings.
-- Hotkey listening (F7–F10) is always on while the app is open. Those
-  listeners match against the bound combinations only; they do not record.
+- Hotkey listening (F7–F10) is always on while the app is open. That
+  listener matches against the bound combinations only and does not record;
+  the only keys it holds back from other programs are those combinations.
 
 ### What it does not do
 

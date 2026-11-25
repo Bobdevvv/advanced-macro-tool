@@ -94,6 +94,11 @@ In Notepad, record and play back each of these:
       above the main monitor (negative coordinates).
 - [ ] At **125 % and 150 % display scaling**, Pick hits exactly the picked
       spot.
+- [ ] Interval 100 ms, Hold 40 ms, Stop after 100: it takes about 10 seconds
+      (the page says 10.0 clicks per second).
+- [ ] Interval 10 ms, Hold 40 ms: the page says 22.2 per second, limited by the
+      hold; 200 clicks take about 9 seconds. With Hold 5 ms it says 100 per
+      second and 200 clicks take about 2 seconds.
 
 ## Hotkeys
 
@@ -102,6 +107,20 @@ In Notepad, record and play back each of these:
 - [ ] Changing a hotkey or theme saves by itself (no Save button); a duplicate
       or invalid hotkey turns red with the reason under the hotkeys.
 - [ ] Ctrl+F7 does not trigger a plain F7 binding.
+- [ ] In Chrome, Edge or Firefox, F7 starts and stops a recording **without**
+      the caret browsing question appearing. Ctrl+F7 in the browser still
+      behaves as the browser normally does.
+- [ ] In Notepad (or any program with a menu bar), F10 runs the clicker and
+      the menu bar is **not** highlighted.
+- [ ] With an Alt combination bound (Alt+F7), pressing it in Notepad does not
+      leave the menu bar highlighted; with a Win combination, the Start menu
+      does not open.
+- [ ] Holding F8 down for two seconds plays once and nothing types F8
+      repeatedly into the program.
+- [ ] With the Bind window open, pressing F8 does not start playback, and
+      F8 is captured.
+- [ ] Binding a plain letter (R) is refused with the reason; Ctrl+R is
+      accepted.
 
 ## Library and files
 

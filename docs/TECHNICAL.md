@@ -83,7 +83,7 @@ When enabled, replaces the raw recorded mouse path with smooth, naturally varied
 - Controls: Timing jitter %, Curve arc %, Mouse noise (px), Typing variation %; editable whether or not humanising is switched on
 
 ### AutoClicker
-- Configurable button (left / right / middle), click interval, and per-click jitter
+- Configurable button (left / right / middle), click interval, and per-click jitter. The interval is press to press: the loop schedules presses on `time.perf_counter`, so the hold is part of it and the rate does not drift. `click_period(interval, hold)` (the interval, or the hold plus a 5 ms release gap if that is longer) is shared by the loop and the rate label. While clicking, Windows' timer resolution is raised to 1 ms (`timeBeginPeriod`); the default 15.6 ms tick would otherwise stretch every wait
 - Optional hold duration per click
 - Click limit (stop after N clicks, or run indefinitely)
 - Fixed-position mode: lock clicks to a specific screen coordinate with a 3-second on-screen countdown picker
@@ -143,6 +143,8 @@ What the code promises, and the tests that hold it to that:
 | Edits never leave a key held | `editing.normalize` after every edit; cuts release held keys at the cut | `tests/test_editing.py` |
 | Shortcuts replay exactly | Keys replay by virtual key code | `tests/test_keyboard.py` |
 | Hotkeys fire with any modifiers and layout | AMT's own matcher compares virtual key codes, exact modifiers, ignores simulated input | `tests/test_hotkeys.py` |
+| A hotkey does nothing in the focused program | The bound combination is suppressed in the keyboard hook, press to release | `tests/test_hotkeys.py` (`Blocking`) |
+| The clicks per second shown are the real rate | One `click_period` for the loop and the label; presses scheduled press to press | `tests/test_engine.py` (`Clicker`), `tests/test_app.py` |
 | AMT's own clicks and simulated input stay out of recordings | Start/stop clicks trimmed; `injected` events ignored | `tests/test_engine.py`, `tests/test_app.py` |
 | An unexpected error does not close the app | Global exception hooks | `tests/test_app.py` (`CrashSafety`) |
 
@@ -160,6 +162,19 @@ What the code promises, and the tests that hold it to that:
   Shift+1 is `"!"`), so such hotkeys never fire. `src/core/hotkey_manager.py`
   matches virtual key codes instead, requires the exact set of modifiers, fires
   once per press (not on auto-repeat) and ignores `injected` input.
+- **Hotkeys are kept from other programs** — otherwise F7 also toggles caret
+  browsing and F10 opens menu bars. Matching runs in pynput's
+  `win32_event_filter`, because an event can only be stopped there:
+  `suppress_event()` returns non-zero from the low-level hook, and pynput then
+  never delivers the event to `on_press`. Only the exact bound combination is
+  kept, from press to release including auto-repeat; modifiers, other
+  combinations and injected input always pass. Blocking the main key of an
+  Alt or Win combination would leave the program a lone Alt or Win tap (menu
+  bar, Start menu), so an unassigned key (`0xE8`) is tapped to mask it.
+  Modifier state is pruned with `GetAsyncKeyState` before matching, so a
+  key-up Windows never delivered cannot leave a modifier stuck. Keys that type
+  text need Ctrl, Alt or Win to be a hotkey, and hotkeys are paused while the
+  Bind dialog is open (`SettingsTab.binding_started` / `binding_finished`).
 - **Timeline editing** — `src/core/editing.py` groups raw events into
   *gestures* (a key hold including its auto-repeats, a click, a scroll burst, a
   stretch of movement) and implements every edit as a pure function returning
