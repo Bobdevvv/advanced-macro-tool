@@ -50,6 +50,18 @@ class TestRelease(unittest.TestCase):
             w._hotkeys.stop()
             w.close()
 
+    def test_pointer_is_symmetric_with_the_key_on_its_axis(self):
+        import math
+        from src.ui import logo
+        # The key is centred on x = 0 of the head's own frame, the axis
+        # through the tip and the middle of the base; the head is symmetric.
+        self.assertGreater(logo.HEAD_HALF_W, 0)
+        self.assertLess(logo.KEY_W, 2 * logo.HEAD_HALF_W)
+        # Tilted by its half-angle, the head's left edge stands upright.
+        t = math.radians(logo.AXIS_TILT)
+        x, y = -logo.HEAD_HALF_W, logo.HEAD_H
+        self.assertAlmostEqual(x * math.cos(t) + y * math.sin(t), 0, places=6)
+
     def test_app_uses_the_icon(self):
         from PyQt6.QtGui import QIcon
         import main

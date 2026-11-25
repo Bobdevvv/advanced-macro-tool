@@ -18,7 +18,7 @@ from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import (
     QBrush, QColor, QImage, QLinearGradient, QPainter, QPen,
-    QPixmap, QPolygonF, QTransform,
+    QPixmap, QPolygonF,
 )
 
 TILE_TOP, TILE_BOTTOM = "#232733", "#0e0f13"
@@ -26,6 +26,13 @@ TILE_EDGE = "#343a49"
 GOLD, GOLD_LIGHT = "#e8b64c", "#f6d58a"
 KEY, KEY_TOP, KEY_EDGE = "#c9ccd4", "#f3f4f7", "#8d929e"
 RECORD = "#f4506b"
+
+# Pointer geometry in the 100 x 100 design grid.
+AXIS_TILT = 22.5                     # degrees; = the head's half-angle
+HEAD_H = 50.0                        # tip to base, along the axis
+HEAD_HALF_W = HEAD_H * math.tan(math.radians(AXIS_TILT))
+KEY_W, KEY_H, KEY_GAP = 14.0, 25.0, 2.5
+TIP = QPointF(30, 12)
 
 
 def paint(p: QPainter, size: float, tile: bool = True) -> None:
@@ -45,46 +52,43 @@ def paint(p: QPainter, size: float, tile: bool = True) -> None:
         p.setPen(QPen(QColor(TILE_EDGE), max(1.0, 1.2 * s)) if not small else Qt.PenStyle.NoPen)
         p.drawRoundedRect(rect, 21 * s, 21 * s)
 
-    p.translate(3 * s, 0)                     # optical centring in the tile
+    # The pointer is built on one axis: tip at the origin, pointing up, the
+    # head symmetric about the axis and the key centred on it.  Tilting the
+    # axis by the head's half-angle (22.5 degrees) gives the classic pointer
+    # silhouette: left edge vertical, right edge at 45 degrees.
+    p.save()
+    p.translate(TIP.x() * s, TIP.y() * s)
+    p.rotate(-AXIS_TILT)
+    p.scale(s, s)                             # from here on: 100-unit grid
 
-    # Pointer geometry, in the 100-unit grid.  The classic arrow: left edge
-    # vertical, right edge at 45 degrees, stem leaving down and to the right.
-    tip = QPointF(30, 13)
-    head = QPolygonF([tip, QPointF(30, 64), QPointF(65.5, 49.5)])
     round_r = 7.0 if not small else 5.0
-
-    def scaled(poly: QPolygonF) -> QPolygonF:
-        return QTransform.fromScale(s, s).map(poly)
-
+    head = QPolygonF([QPointF(0, 0), QPointF(-HEAD_HALF_W, HEAD_H),
+                      QPointF(HEAD_HALF_W, HEAD_H)])
     # Head: a rounded triangle = fill + same-colour stroke with round joins.
-    head_grad = QLinearGradient(30 * s, 13 * s, 60 * s, 64 * s)
+    head_grad = QLinearGradient(0, 0, 0, HEAD_H)
     head_grad.setColorAt(0, QColor(GOLD_LIGHT))
     head_grad.setColorAt(1, QColor(GOLD))
-    pen = QPen(QBrush(head_grad), round_r * s)
+    pen = QPen(QBrush(head_grad), round_r)
     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
     p.setPen(pen)
     p.setBrush(QBrush(head_grad))
-    p.drawPolygon(scaled(head))
+    p.drawPolygon(head)
 
-    # Stem: a key cap, set apart from the head by a small gap.
-    angle = 26.0                                  # degrees from vertical
-    p.save()
-    p.translate(44.5 * s, 66.0 * s)
-    p.rotate(-angle)
-    w, h = (14.0, 27.0)
-    cap = QRectF(-w / 2 * s, 0, w * s, h * s)
-    p.setPen(QPen(QColor(KEY_EDGE), max(0.8, 1.4 * s)) if not small else Qt.PenStyle.NoPen)
+    # Stem: a key cap on the axis, set apart from the head by a small gap.
+    top_y = HEAD_H + round_r / 2 + KEY_GAP
+    cap = QRectF(-KEY_W / 2, top_y, KEY_W, KEY_H)
+    p.setPen(QPen(QColor(KEY_EDGE), max(0.8 / s, 1.4)) if not small else Qt.PenStyle.NoPen)
     p.setBrush(QColor(KEY))
-    p.drawRoundedRect(cap, 4.5 * s, 4.5 * s)
+    p.drawRoundedRect(cap, 4.5, 4.5)
     if not small:
-        top = QRectF((-w / 2 + 2.6) * s, 2.2 * s, (w - 5.2) * s, (h - 8) * s)
+        top = QRectF(-KEY_W / 2 + 2.6, top_y + 2.2, KEY_W - 5.2, KEY_H - 8)
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(QColor(KEY_TOP))
-        p.drawRoundedRect(top, 3 * s, 3 * s)
+        p.drawRoundedRect(top, 3, 3)
     p.restore()
 
     # Record dot, top right of the tip, with a soft halo at larger sizes.
-    centre, r = QPointF(70 * s, 24 * s), (7.0 if not small else 10.0) * s
+    centre, r = QPointF(68 * s, 24 * s), (7.0 if not small else 10.0) * s
     if not small:
         halo = QColor(RECORD)
         halo.setAlpha(60)
