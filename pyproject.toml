@@ -1,0 +1,15 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["build", "dist"]
+
+[tool.ruff.lint]
+# F: undefined / unused names   E9: syntax errors   B: likely bugs
+# PLE: pylint errors   W6: invalid escape sequences
+select = ["F", "E9", "B", "PLE", "W6"]
+ignore = [
+    "B008",   # Qt objects as default arguments are not used this way here
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]

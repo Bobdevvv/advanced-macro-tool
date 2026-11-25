@@ -1,0 +1,91 @@
+# ---------------------------------------------------------------------------
+# Recorded macros - TREAT AS SECRETS.
+#
+# A macro is a literal keystroke log: src/models/macro.py stores each key as
+# the character that was actually typed. Any macro recorded while a password,
+# card number, recovery phrase or private message was on the keyboard contains
+# that text verbatim, in plaintext.
+#
+# By default macros live in ~/Documents/AdvancedMacroTool/macros, outside this repo.
+# These rules exist because the storage directory is user-configurable in
+# Settings and can be pointed anywhere - including here.
+#
+# Do not relax these patterns to commit a "harmless" sample macro. Hand-write
+# the JSON instead, so nothing that touched a real keyboard is ever published.
+# ---------------------------------------------------------------------------
+macros/
+*.macro.json
+Untitled-*.json
+
+# App settings - contains this machine's absolute macro-storage path.
+settings.json
+
+# ---------------------------------------------------------------------------
+# Build artifacts - these leak the build machine's absolute paths.
+#
+# PyInstaller writes the full path of every analysed file into build/*.toc and
+# xref-build.html, e.g.
+#   C:\Users\<name>\AppData\Roaming\Python\Python314\site-packages\...
+# which discloses the OS username, Python version, install layout, and an
+# inventory of every installed package. build/ alone is ~41 MB.
+# ---------------------------------------------------------------------------
+build/
+dist/
+*.spec.bak
+*.exe
+*.pkg
+*.pyz
+*.toc
+xref-build.html
+warn-build.txt
+
+# ---------------------------------------------------------------------------
+# Python bytecode - .pyc files embed the compile-time absolute source path in
+# co_filename, which leaks the OS username and folder layout.
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Packaging / tooling caches
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.tox/
+htmlcov/
+.coverage
+.coverage.*
+
+# ---------------------------------------------------------------------------
+# Local tool and editor state - machine-specific, often path-bearing.
+# .claude/settings.local.json accumulates local tool-permission grants.
+# ---------------------------------------------------------------------------
+.claude/settings.local.json
+.vscode/
+.idea/
+*.code-workspace
+
+# OS cruft
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Logs, crash dumps, scratch files
+*.log
+*.dmp
+*.bak
+*.tmp
+*.orig
+*.rej
